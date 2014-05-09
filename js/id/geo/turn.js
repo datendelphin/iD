@@ -1,21 +1,22 @@
 iD.geo.Turn = function(turn) {
-    turn = _.clone(turn);
+    if (!(this instanceof iD.geo.Turn))
+        return new iD.geo.Turn(turn);
+    _.extend(this, turn);
+};
 
-    turn.key = function() {
-        var components = [turn.from, turn.to, turn.via, turn.toward];
-        if (turn.restriction)
-            components.push(turn.restriction);
+iD.geo.Turn.prototype = {
+    key: function () {
+        var components = [this.from, this.to, this.via, this.toward];
+        if (this.restriction)
+            components.push(this.restriction);
         return components.map(iD.Entity.key).join('-');
-    };
+    },
 
-    turn.angle = function(projection) {
-        var v = projection(turn.via.loc),
-            t = projection(turn.toward.loc);
-
+    angle: function (projection) {
+        var v = projection(this.via.loc),
+            t = projection(this.toward.loc);
         return Math.atan2(t[1] - v[1], t[0] - v[0]);
-    };
-
-    return turn;
+    }
 };
 
 iD.geo.turns = function(graph, entityID) {

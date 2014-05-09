@@ -14,27 +14,34 @@ iD.behavior.Select = function(context) {
     }
 
     function click() {
-        var datum = d3.event.target.__data__;
-        var lasso = d3.select('#surface .lasso').node();
-        if (!(datum instanceof iD.Entity)) {
+        var datum = d3.event.target.__data__,
+            lasso = d3.select('#surface .lasso').node(),
+            id;
+
+        if (datum instanceof iD.Entity)
+            id = datum.id;
+        else if (datum instanceof iD.geo.Turn && datum.restriction)
+            id = datum.restriction.id;
+
+        if (!id) {
             if (!d3.event.shiftKey && !lasso)
                 context.enter(iD.modes.Browse(context));
 
         } else if (!d3.event.shiftKey && !lasso) {
             // Avoid re-entering Select mode with same entity.
-            if (context.selectedIDs().length !== 1 || context.selectedIDs()[0] !== datum.id) {
-                context.enter(iD.modes.Select(context, [datum.id]));
+            if (context.selectedIDs().length !== 1 || context.selectedIDs()[0] !== id) {
+                context.enter(iD.modes.Select(context, [id]));
             } else {
                 context.mode().reselect();
             }
-        } else if (context.selectedIDs().indexOf(datum.id) >= 0) {
-            var selectedIDs = _.without(context.selectedIDs(), datum.id);
+        } else if (context.selectedIDs().indexOf(id) >= 0) {
+            var selectedIDs = _.without(context.selectedIDs(), id);
             context.enter(selectedIDs.length ?
                 iD.modes.Select(context, selectedIDs) :
                 iD.modes.Browse(context));
 
         } else {
-            context.enter(iD.modes.Select(context, context.selectedIDs().concat([datum.id])));
+            context.enter(iD.modes.Select(context, context.selectedIDs().concat([id])));
         }
     }
 
