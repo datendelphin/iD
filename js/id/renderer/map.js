@@ -18,6 +18,7 @@ iD.Map = function(context) {
         areas = iD.svg.Areas(projection),
         midpoints = iD.svg.Midpoints(roundedProjection, context),
         labels = iD.svg.Labels(projection, context),
+        restrictions = iD.svg.Restrictions(context),
         supersurface, surface,
         mouse,
         mousemove;
@@ -80,6 +81,7 @@ iD.Map = function(context) {
                     graph = context.graph();
                 surface.call(vertices, graph, all, filter, extent, map.zoom());
                 surface.call(midpoints, graph, all, filter, extent);
+                surface.call(restrictions);
                 dispatch.drawn({full: false});
             }
         });
@@ -138,7 +140,8 @@ iD.Map = function(context) {
             .call(lines, graph, all, filter)
             .call(areas, graph, all, filter)
             .call(midpoints, graph, all, filter, map.extent())
-            .call(labels, graph, all, filter, dimensions, !difference && !extent);
+            .call(labels, graph, all, filter, dimensions, !difference && !extent)
+            .call(restrictions);
 
         if (points.points(context.intersects(map.extent()), 100).length >= 100) {
             surface.select('.layer-hit').selectAll('g.point').remove();
