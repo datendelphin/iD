@@ -19,9 +19,36 @@ iD.geo.Turn = function(turn) {
 };
 
 iD.geo.turns = function(graph, entityID) {
-    var way = graph.entity(entityID);
-    if (way.type !== 'way' || !way.tags.highway || way.isArea())
+    var entity = graph.entity(entityID);
+
+    if (entity.type === 'relation' && entity.tags.type === 'restriction')
+        return restriction(entity);
+    if (entity.type !== 'way' || !entity.tags.highway || entity.isArea())
         return [];
+
+    function restriction(relation) {
+        var f = relation.memberByRole('from'),
+            t = relation.memberByRole('to'),
+            v = relation.memberByRole('via');
+
+        if (!f || !t || !v || f.type !== 'way' || t.type !== 'way' || v.type !== 'node')
+            return [];
+
+        f = graph.hasEntity(f.id);
+        t = graph.hasEntity(t.id);
+        v = graph.hasEntity(v.id);
+
+        if (!f || !t || !v || f.isDegenerate() || t.isDegenerate())
+            return [];
+
+        return [iD.geo.Turn({
+            from: f,
+            to: t,
+            via: v,
+            toward: graph.entity(v.id === t.first() ? t.nodes[1] : t.nodes[t.nodes.length - 2]),
+            restriction: relation
+        })];
+    }
 
     function withRestriction(turn) {
         graph.parentRelations(turn.from).forEach(function(relation) {
@@ -44,14 +71,14 @@ iD.geo.turns = function(graph, entityID) {
 
     var turns = [];
 
-    [way.first(), way.last()].forEach(function(nodeID) {
+    [entity.first(), entity.last()].forEach(function(nodeID) {
         var node = graph.entity(nodeID);
         graph.parentWays(node).forEach(function(parent) {
-            if (parent === way || parent.isDegenerate() || !parent.tags.highway)
+            if (parent === entity || parent.isDegenerate() || !parent.tags.highway)
                 return;
-            if (way.first() === node.id && way.tags.oneway === 'yes')
+            if (entity.first() === node.id && entity.tags.oneway === 'yes')
                 return;
-            if (way.last() === node.id && way.tags.oneway === '-1')
+            if (entity.last() === node.id && entity.tags.oneway === '-1')
                 return;
 
             var index = parent.nodes.indexOf(node.id);
@@ -59,7 +86,7 @@ iD.geo.turns = function(graph, entityID) {
             // backward
             if (parent.first() !== node.id && parent.tags.oneway !== 'yes') {
                 turns.push(withRestriction({
-                    from: way,
+                    from: entity,
                     to: parent,
                     via: node,
                     toward: graph.entity(parent.nodes[index - 1])
@@ -69,7 +96,7 @@ iD.geo.turns = function(graph, entityID) {
             // forward
             if (parent.last() !== node.id && parent.tags.oneway !== '-1') {
                 turns.push(withRestriction({
-                    from: way,
+                    from: entity,
                     to: parent,
                     via: node,
                     toward: graph.entity(parent.nodes[index + 1])

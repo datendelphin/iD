@@ -305,6 +305,30 @@ describe("iD.geo.turns", function() {
         }]);
     });
 
+    it("returns a restricted turn given a restriction", function() {
+        var graph = iD.Graph([
+                iD.Node({id: 'u'}),
+                iD.Node({id: 'v'}),
+                iD.Node({id: 'w'}),
+                iD.Way({id: '=', nodes: ['u', 'v'], tags: {highway: 'residential'}}),
+                iD.Way({id: '-', nodes: ['v', 'w'], tags: {highway: 'residential'}}),
+                iD.Relation({id: 'r', tags: {type: 'restriction'}, members: [
+                    {id: '=', role: 'from', type: 'way'},
+                    {id: '-', role: 'to', type: 'way'},
+                    {id: 'v', role: 'via', type: 'node'}
+                ]})
+            ]),
+            turns = iD.geo.turns(graph, 'r');
+
+        expect(properties(turns)).to.eql([{
+            from: graph.entity('='),
+            to: graph.entity('-'),
+            via: graph.entity('v'),
+            toward: graph.entity('w'),
+            restriction: graph.entity('r')
+        }]);
+    });
+
     // 'no' vs 'only'
     // U-turns
     // Self-intersections
